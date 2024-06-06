@@ -9,11 +9,11 @@ import android.view.View
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import ddwu.com.mobile.fooddbexam02.data.FoodDBHelper
+import ddwu.com.mobile.fooddbexam02.data.FoodDao
 import ddwu.com.mobile.fooddbexam02.data.FoodDto
 import ddwu.com.mobile.fooddbexam02.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-
     val TAG = "MainActivity"
     val REQ_ADD = 100
     val REQ_UPDATE = 200
@@ -22,6 +22,10 @@ class MainActivity : AppCompatActivity() {
         ActivityMainBinding.inflate(layoutInflater)
     }
     lateinit var foods : ArrayList<FoodDto>
+
+    val foodDao by lazy {
+        FoodDao(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +36,7 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayoutManager.VERTICAL
         }
 
-        foods = getAllFoods()               // DB 에서 모든 food를 가져옴
+        foods = foodDao.getAllFoods()               // DB 에서 모든 food를 가져옴
         val adapter = FoodAdapter(foods)        // adapter 에 데이터 설정
         binding.rvFoods.adapter = adapter   // RecylcerView 에 adapter 설정
 
@@ -44,9 +48,9 @@ class MainActivity : AppCompatActivity() {
         adapter.setOnItemLongClickListener(object: FoodAdapter.OnItemLongClickListener {
             override fun onItemLongClick(view: View, position: Int): Boolean {
                 // 현재 항목 삭제 (DB ID를 기준으로) 후 화면 갱신
-                if(deleteFood(foods[position]) > 0) {
+                if(foodDao.deleteFood(foods[position]) > 0) {
                     foods.clear()
-                    foods.addAll(getAllFoods())
+                    foods.addAll(foodDao.getAllFoods())
                     binding.rvFoods.adapter?.notifyDataSetChanged()
                 }
 
@@ -75,7 +79,7 @@ class MainActivity : AppCompatActivity() {
             REQ_UPDATE -> {
                 if (resultCode == RESULT_OK) {
                     foods.clear()                       // 기존 항목 제거
-                    foods.addAll(getAllFoods())         // 항목 추가
+                    foods.addAll(foodDao.getAllFoods())         // 항목 추가
                     binding.rvFoods.adapter?.notifyDataSetChanged()      // RecyclerView 갱신
                 } else {
                     Toast.makeText(this@MainActivity, "취소됨", Toast.LENGTH_SHORT).show()
@@ -85,7 +89,7 @@ class MainActivity : AppCompatActivity() {
             REQ_ADD -> {
                 if (resultCode == RESULT_OK) {
                     foods.clear()                       // 기존 항목 제거
-                    foods.addAll(getAllFoods())         // 항목 추가
+                    foods.addAll(foodDao.getAllFoods())         // 항목 추가
                     binding.rvFoods.adapter?.notifyDataSetChanged()      // RecyclerView 갱신
                 } else {
                     Toast.makeText(this@MainActivity, "취소됨", Toast.LENGTH_SHORT).show()
@@ -93,38 +97,4 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
-    fun deleteFood(dto: FoodDto) : Int {
-        val helper = FoodDBHelper(this)
-        val db = helper.writableDatabase
-
-        val whereClause = "${BaseColumns._ID}=?"
-        val whereArgs = arrayOf(dto.id.toString()) // int로 들어오므로
-
-        return db.delete(FoodDBHelper.TABLE_NAME, whereClause, whereArgs)
-    }
-
-
-    @SuppressLint("Range")
-    fun getAllFoods() : ArrayList<FoodDto> {
-        val helper = FoodDBHelper(this)
-        val db = helper.readableDatabase
-//        val cursor = db.rawQuery("SELECT * FROM ${FoodDBHelper.TABLE_NAME}", null)
-        val cursor = db.query(FoodDBHelper.TABLE_NAME, null, null, null, null, null, null)
-
-        val foods = arrayListOf<FoodDto>()
-        with (cursor) {
-            while (moveToNext()) {
-                val id = getInt( getColumnIndex(BaseColumns._ID) )
-                val food = getString ( getColumnIndex(FoodDBHelper.COL_FOOD) )
-                val country = getString ( getColumnIndex(FoodDBHelper.COL_COUNTRY) )
-                val dto = FoodDto(id, food, country)
-                foods.add(dto)
-            }
-        }
-        return foods
-    }
-
-
-
 }
