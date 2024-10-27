@@ -26,9 +26,8 @@ class NVService(val context: Context) {
     }
 
 
-    fun getBooks(query: String, clientID: String, clientSecret: String) : List<Book>? {
+    suspend fun getBooks(query: String, clientID: String, clientSecret: String) : List<Book>? {
         val root : Root = service.getBooks("json", clientID, clientSecret, query)
-
         return root.books
     }
 
